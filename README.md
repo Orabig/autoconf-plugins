@@ -69,3 +69,12 @@ $> ./check_fs.pl -H 192.168.23.45 -F / -w 75% -c 90%
 OK : Filesystem / is full at 23% | usage=3547318908 total=15423125687 warning=11567344265 critical=13880813119
 ```
 
+# General steps of automatic instance definitions
+
+Given these properties for plugins, here are the steps necessary for automatic import :
+
+1. User choose plugin + poller
+2. System calls plugin with `--autodoc`
+3. User fills in the "used for discovery" fields
+4. System calls plugin with `--autoconf`
+5. The user is given a list of instances, and may review/modify it before validation
