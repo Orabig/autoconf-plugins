@@ -48,6 +48,8 @@ use constant FORMAT_BOOLEAN => '1|0|true|false|yes|no';
 
 my %PLUGIN;
 my @ARGUMENTS;
+my $OUTPUT_SEP=';';
+my $INSTANCE_NAME='INSTANCE_NAME'; # Reserved word for autoconf output
 
 =head2 Methods
 
@@ -72,6 +74,7 @@ sub new {
 	$self->{description} = $description;
 	
 	$self->{args} = [];
+	$self->{confs} = [];
 
 	return $self;
 }
@@ -91,7 +94,8 @@ Defines a new argument for this plugin.
 The logical name must use only alphanumerical , dash (C<->) or underscore (C<_>) characters.
 When unspecified, the shortcut is the initial letter of the logical name (case sensitive !).
 When unspecified, the format is FORMAT_NUMBER.
-Unless defined, C<mandatory> is set to true, C<discoverable> is set to false and C<used_for_discovery> is set to the opposite of C<discoverable>. 
+Unless defined, C<mandatory> is set to B<TRUE>, C<discoverable> is set to B<FALSE>.
+Unless defined, C<used_for_discovery> is to B<TRUE> only if the argument is C<mandatory> and not C<discoverable>. 
 	
 =cut
 
@@ -101,7 +105,7 @@ sub addArgument {
 	my $ARG;
 	$ARG->{name}=$name; # TODO : validate logical name
 	
-	my $defaultShortcut = $name; $defaultShortcut=~s/.*?([a-z]).*/$1/;
+	my $defaultShortcut = $name; $defaultShortcut=~s/.*?([a-z]).*/$1/i;
 	$ARG->{shortcut}= exists $args{shortcut} ? $args{shortcut} : $defaultShortcut;
 	$ARG->{format}= exists $args{format} ? $args{format} : FORMAT_NUMBER;
 	
@@ -110,7 +114,7 @@ sub addArgument {
 	my $used_for_discovery = $args{used_for_discovery};
 	$mandatory = 1 unless defined $mandatory;
 	$discoverable = 0 unless defined $discoverable;
-	$used_for_discovery = 1-!!$discoverable unless defined $used_for_discovery;
+	$used_for_discovery = 1-!($mandatory && !$discoverable) unless defined $used_for_discovery;
 	$ARG->{mandatory}=$mandatory;
 	$ARG->{discoverable}=$discoverable;
 	$ARG->{used_for_discovery}=$used_for_discovery;
@@ -137,9 +141,10 @@ sub processArguments {
 	
 	# Read the arguments
 	my $ARGS_VALUES = {};
-	my $autoconf; my $autodoc;
+	my $autoconf; my $autodoc; my $commandline;
 	GetOptions ( 
 		"autoconf" => \$autoconf,
+		"commandline" => \$commandline,
 		"autodoc"  => \$autodoc ,
 		map {
 			my $name=$_->{'name'};
@@ -160,18 +165,18 @@ sub processArguments {
 		if (defined $value && $value eq '') { # Empty argument (like 'b' in '-a 1 -b -c 2')
 			$self->{values}->{$name}=$value=undef;
 			}
-		exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory;
+		exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory && !$autoconf;
 		exit_unknown("$name (-$shortcut) parameter is mandatory for --autoconf") if !defined $value && $autoconf && $used_for_discovery;
 		exit_unknown("Bad format for $name parameter : -$shortcut $value") unless !defined $value || $value=~/^$format$/;
 	}
 		
 	# Manage --autodoc request
 	if ($autodoc) {
-		my $plugin_part = join ';', map $self->{$_}, qw!name version description!;
+		my $plugin_part = join $OUTPUT_SEP, map $self->{$_}, qw!name version description!;
 		my $args_in_line = join $/,
 			map {
 				my $args=$_;
-				join ';', map $args->{$_}, qw!name shortcut format mandatory discoverable used_for_discovery description!;
+				join $OUTPUT_SEP, map $args->{$_}, qw!name shortcut format mandatory discoverable used_for_discovery description!;
 			}
 			@{$self->{args}};
 	
@@ -190,8 +195,8 @@ $args_in_line
 AUTODOC_END
 	}
 	
-	# TODO : --autoconf
-	# ...
+	$self->{autoconf}=$autoconf;
+	$self->{commandline}=$commandline;
 } # End of processArguments
 
 =head3 get
@@ -212,6 +217,75 @@ sub get {
 	exit_unknown("Argument '$name' is not defined for this plugin.") unless defined $self->{args_by_name}->{$name};
 	my $value = $self->{values}->{$name};	
 	return $value;
+}
+
+=head3 autoconf
+
+  $plugin->autoconf( sub{ ... $plugin.set() ... $plugin.suggest()... } );
+  
+Makes the autoconf
+=cut
+
+sub autoconf {
+	my $self=shift;
+	my $function=shift;
+	return unless $self->{autoconf};
+	$function->(); # This is supposed to push configs to {confs}
+	
+	# Extract the list of arguments logical names in order
+	my @NAMES=map $_->{name}, @{ $self->{args} };
+	# Two different formats for autoconf : CommandLine or CSV output
+	if ( $self->{commandline} ) {
+		# Generate a command line
+		my @params = map{
+			my $values=$_;
+			join $", map "-$self->{args_by_name}->{$_}->{shortcut} $values->{$_}", @NAMES;
+		} @{ $self->{confs} };
+		print "# Autoconf : command lines\n".join $/, map "$0 $_",@params;
+		print $/;
+	} else {
+		my $header = join $OUTPUT_SEP, $INSTANCE_NAME, @NAMES;
+		my $count=1;
+		my $proposals = join $/,map{
+			my $values=$_;
+			my $instanceName = $values->{$INSTANCE_NAME};
+			$instanceName=$self->{name}."-$count" unless $instanceName; $count++;
+			$instanceName . $OUTPUT_SEP . join $OUTPUT_SEP, map $values->{$_}, @NAMES;
+		} @{ $self->{confs} };
+		exit_unknown(<<AUTOCONF_END);
+# Autoconf : format CSV
+
+# $header
+$proposals
+AUTOCONF_END
+		}
+	}
+
+sub set {
+	my $self=shift;
+	my $name=shift;
+	my $value=shift;
+	$self->{values}->{$name}=$value;
+}
+
+sub suggest {
+	my $self=shift;
+	my $instanceName=shift;
+	my %copy = %{$self->{values}};
+	$copy{$INSTANCE_NAME}=$instanceName;
+	push $self->{confs}, \%copy;
+}
+
+sub save {
+	my $self=shift;
+	my %copy = %{$self->{values}};
+	$self->{saved_values}=\%copy;
+}
+
+sub load {
+	my $self=shift;
+	my $copy = $self->{saved_values};
+	$self->{values} = $copy if $copy;
 }
 
 # Nagios output utility methods

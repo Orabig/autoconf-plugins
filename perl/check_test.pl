@@ -23,5 +23,19 @@ $plugin->addArgument('critical', mandatory=>0, description=> 'critical threshold
 
 $plugin->processArguments();
 
-print "host IP = ".$plugin->get('HOST-IP');
+$plugin->autoconf( sub {
+	# Do whatever this plugin can do to suggest some useful configurations
+	$plugin->set('FILESYSTEM','/');    $plugin->suggest("FS-ROOT");
+	$plugin->set('FILESYSTEM','/home');$plugin->suggest("FS-HOME");
+	
+	$plugin->save(); # Some argument values will be changed. Let's save them before that...
+	$plugin->set('warning',90); $plugin->set('critical',95);
+	$plugin->set('FILESYSTEM','/tmp'); $plugin->suggest("FS-TEMP");
+	$plugin->load(); # ...Then load them after
+	
+	$plugin->set('FILESYSTEM','/dev'); $plugin->suggest("FS-DEV");
+} );
+
+
+#print "host IP = ".$plugin->get('HOST-IP');
 

@@ -54,19 +54,23 @@ CRITICAL;c;!\d+[%bkmgt]?!i;0;0;0;Critical threshold (in bytes or %)
 ### check_fs.pl Plugin : Auto-documentation
 
 ```
-$> ./check_fs.pl --autoconf -H 192.168.23.45
+$> ./check_fs.pl -H 192.168.23.45 -w 80 -c 90 --autoconf
 # Autoconf : format CSV
-# Name;HOST-IP;FILESYSTEM;WARNING;CRITICAL
-FS-ROOT;192.168.23.45;/;;
-FS-BOOT;192.168.23.45;/boot;;
-FS-VAR;192.168.23.45;/var;;
-FS-HOME;192.168.23.45;/home;;
+# INSTANCE_NAME;HOST-IP;FILESYSTEM;WARNING;CRITICAL
+FS-ROOT;192.168.23.45;/;80;90
+FS-BOOT;192.168.23.45;/boot;80;90
+FS-VAR;192.168.23.45;/var;80;90
+FS-HOME;192.168.23.45;/home;80;90
 ```
 
-The Plugin may now be tested with one of these arguments :
+The Plugin may also directly generate command lines ready to use with an additional `--commandline` argument :
 ```
-$> ./check_fs.pl -H 192.168.23.45 -F / -w 75% -c 90%
-OK : Filesystem / is full at 23% | usage=3547318908 total=15423125687 warning=11567344265 critical=13880813119
+$> ./check_fs.pl -H 192.168.23.45 -c 90 -w 80 --autoconf
+# Autoconf : command lines
+./check_test.pl -H 192.168.23.45 -n / -w 80 -c 90
+./check_test.pl -H 192.168.23.45 -n /home -w 80 -c 90
+./check_test.pl -H 192.168.23.45 -n /tmp -w 90 -c 95
+./check_test.pl -H 192.168.23.45 -n /dev -w 80 -c 90
 ```
 
 # General steps of automatic instance definitions
