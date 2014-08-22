@@ -2,6 +2,8 @@ package Nagios::Autoconf;
 use strict;
 use warnings;
 
+####### TODO : --version and --help
+
 our $VERSION = "1.00";
  
 =head1 NAME
@@ -165,9 +167,11 @@ sub processArguments {
 		if (defined $value && $value eq '') { # Empty argument (like 'b' in '-a 1 -b -c 2')
 			$self->{values}->{$name}=$value=undef;
 			}
-		exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory && !$autoconf;
-		exit_unknown("$name (-$shortcut) parameter is mandatory for --autoconf") if !defined $value && $autoconf && $used_for_discovery;
-		exit_unknown("Bad format for $name parameter : -$shortcut $value") unless !defined $value || $value=~/^$format$/;
+		unless ($autodoc) {
+			exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory && !$autoconf ;
+			exit_unknown("$name (-$shortcut) parameter is mandatory for --autoconf") if !defined $value && $autoconf && $used_for_discovery;
+			exit_unknown("Bad format for $name parameter : -$shortcut $value") unless !defined $value || $value=~/^$format$/;
+		}
 	}
 		
 	# Manage --autodoc request
