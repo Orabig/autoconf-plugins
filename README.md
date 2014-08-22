@@ -40,18 +40,22 @@ Example
 ```bash
 $> ./check_fs.pl --autodoc
 # Autodoc : format CSV
+
 # Plugin :
 # Name;Version;Description
+
 CHECK-FS;1.3;Check filesystem (multi-OS : Linux/Windows)
+
 # Arguments :
 # Name;Shortcut;Format;Mandatory;Discoverable;UsedForDiscovery;Description
-HOST-IP;H;IP;1;0;1;IP address of host
-FILESYSTEM;F;!/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:!;1;1;0;Name of the filesystem
-WARNING;w;!\d+[%bkmgt]?!i;0;0;0;Warning threshold (in bytes or %)
-CRITICAL;c;!\d+[%bkmgt]?!i;0;0;0;Critical threshold (in bytes or %)
+
+HOST-IP;H;\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3};1;0;1;IP address of host (mandatory)
+FILESYSTEM;n;/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:;1;1;0;Name of the filesystem (mandatory)
+warning;w;\d+;0;0;0;warning threshold
+critical;c;\d+;0;0;0;critical threshold
 ```
 
-### check_fs.pl Plugin : Auto-documentation
+### check_fs.pl Plugin : Auto-configuration
 
 ```
 $> ./check_fs.pl -H 192.168.23.45 -w 80 -c 90 --autoconf
