@@ -10,13 +10,18 @@ use File::Basename qw(dirname);
 use Cwd  qw(abs_path);
 use lib dirname (abs_path $0) . '/lib';
 
-use Nagios::Autoconf qw(initAutoconf);
+use Nagios::Autoconf qw(FORMAT_IP FORMAT_NUMBER);
 
-my %ARGS = initAutoconf("$PLUGIN_NAME;$Version;$PLUGIN_DESC", [
-			'HOST-IP;H;IP;1;0;1;IP address of host' ,
-			'FILESYSTEM;n;!/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:!;1;1;0;Name of the filesystem' ,
-			'WARNING;w;!\d+[%bkmgt]?!i;0;0;0;Warning threshold (in bytes or %)' ,
-			'CRITICAL;c;!\d+[%bkmgt]?!i;0;0;0;Critical threshold (in bytes or %)' ]);
+my $plugin = Nagios::Autoconf->new( $PLUGIN_NAME, $Version, description => $PLUGIN_DESC );
+$plugin->addArgument('HOST-IP', format=> FORMAT_IP, description=> 'IP address of host (mandatory)');
+$plugin->addArgument('FILESYSTEM', shortcut=> 'n'
+			, format=> '/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:'
+			, description=> 'Name of the filesystem (mandatory)'
+			, discoverable=> 1);
+$plugin->addArgument('warning', mandatory=>0, description=> 'warning threshold');
+$plugin->addArgument('critical', mandatory=>0, description=> 'critical threshold');
 
-# print $ARGS{'HOST-IP'};
-# print $ARGS{'WARNING'};
+$plugin->processArguments();
+
+print "host IP = ".$plugin->get('HOST-IP');
+
