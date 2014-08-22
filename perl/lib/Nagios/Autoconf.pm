@@ -43,7 +43,7 @@ our @EXPORT_OK = qw(FORMAT_STRING FORMAT_NUMBER FORMAT_PERCENT FORMAT_IP FORMAT_
 use constant FORMAT_STRING => '.*';
 use constant FORMAT_NUMBER => '\d+';
 use constant FORMAT_PERCENT => '(100|\d\d?)\%?';
-use constant FORMAT_IP => '\d+\.\d+\.\d+\.\d+';
+use constant FORMAT_IP => '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}';
 use constant FORMAT_BOOLEAN => '1|0|true|false|yes|no';
 
 my %PLUGIN;
@@ -145,8 +145,25 @@ sub processArguments {
 			my $name=$_->{'name'};
 			my $short=$_->{'shortcut'};
 			"$short:s"=> \$ARGS_VALUES->{$name};
-		} @{$self->{args}} );
+		} @{$self->{args}}
+	);
 	$self->{values} = $ARGS_VALUES;
+	
+	# Validate arguments
+	foreach my $argument ( @{$self->{args}} ) {
+		my $name=$argument->{name};
+		my $format=$argument->{format};
+		my $shortcut=$argument->{shortcut};
+		my $mandatory=$argument->{mandatory};
+		my $used_for_discovery=$argument->{used_for_discovery};
+		my $value=$self->{values}->{$name};
+		if (defined $value && $value eq '') { # Empty argument (like 'b' in '-a 1 -b -c 2')
+			$self->{values}->{$name}=$value=undef;
+			}
+		exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory;
+		exit_unknown("$name (-$shortcut) parameter is mandatory for --autoconf") if !defined $value && $autoconf && $used_for_discovery;
+		exit_unknown("Bad format for $name parameter : -$shortcut $value") unless !defined $value || $value=~/^$format$/;
+	}
 		
 	# Manage --autodoc request
 	if ($autodoc) {
@@ -193,8 +210,7 @@ sub get {
 	
 	exit_unknown("Plugin error : must call 'processArguments' before 'get'") unless defined $self->{values};
 	exit_unknown("Argument '$name' is not defined for this plugin.") unless defined $self->{args_by_name}->{$name};
-	my $value = $self->{values}->{$name};
-	$value = undef if $value eq ''; # Empty argument (like 'b' in '-a 1 -b -c 2')
+	my $value = $self->{values}->{$name};	
 	return $value;
 }
 
