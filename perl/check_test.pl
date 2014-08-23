@@ -10,9 +10,14 @@ use File::Basename qw(dirname);
 use Cwd  qw(abs_path);
 use lib dirname (abs_path $0) . '/lib';
 
+### "use-lib"
 use Nagios::Autoconf qw(FORMAT_IP FORMAT_NUMBER);
 
+### "use-lib-end"
+
+### "new-autoconf"
 my $plugin = Nagios::Autoconf->new( $PLUGIN_NAME, $Version, description => $PLUGIN_DESC );
+### "add-arguments"
 $plugin->addArgument('HOST-IP', format=> FORMAT_IP, description=> 'IP address of host (mandatory)');
 $plugin->addArgument('FILESYSTEM', shortcut=> 'n'
 			, format=> '/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:'
@@ -20,9 +25,9 @@ $plugin->addArgument('FILESYSTEM', shortcut=> 'n'
 			, discoverable=> 1);
 $plugin->addArgument('warning', mandatory=>0, description=> 'warning threshold');
 $plugin->addArgument('critical', mandatory=>0, description=> 'critical threshold');
-
+### "process-arguments"
 $plugin->processArguments();
-
+### "autoconf"
 $plugin->autoconf( sub {
 	# Do whatever this plugin can do to suggest some useful configurations
 	$plugin->set('FILESYSTEM','/');    $plugin->suggest("FS-ROOT");
@@ -35,7 +40,3 @@ $plugin->autoconf( sub {
 	
 	$plugin->set('FILESYSTEM','/dev'); $plugin->suggest("FS-DEV");
 } );
-
-
-#print "host IP = ".$plugin->get('HOST-IP');
-

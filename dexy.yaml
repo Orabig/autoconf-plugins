@@ -1,0 +1,32 @@
+README-src.md|jinja:
+   - shell-autodoc.sh:
+      - contents: "./check_fs.pl --autodoc"
+   - shell-autodoc.sh|sh:
+      - contents: "perl ./perl/check_test.pl --autodoc"
+      - perl/check_test.pl
+      - perl/lib/Nagios/Autoconf.pm
+   - shell-autoconf.sh:
+      - contents: "./check_fs.pl -H 192.168.1.2 -w 60 -c 75 --autoconf"
+   - shell-autoconf.sh|sh:
+      - contents: "perl ./perl/check_test.pl -H 192.168.1.2 -w 60 -c 75 --autoconf"
+      - perl/check_test.pl
+      - perl/lib/Nagios/Autoconf.pm
+   - shell-autoconf-command.sh:
+      - contents: "./check_fs.pl -H 192.168.1.2 -w 60 -c 75 --autoconf --commandline"
+   - shell-autoconf-command.sh|sh:
+      - contents: "perl ./perl/check_test.pl -H 192.168.1.2 -w 60 -c 75 --autoconf --commandline"
+      - perl/check_test.pl
+      - perl/lib/Nagios/Autoconf.pm
+   - shell-version.sh:
+      - contents: "perl ./perl/check_test.pl --version"
+   - shell-version.sh|sh:
+      - contents: "perl ./perl/check_test.pl --version"
+      - perl/check_test.pl
+      - perl/lib/Nagios/Autoconf.pm
+   - shell-help.sh:
+      - contents: "perl ./perl/check_test.pl --help"
+   - shell-help.sh|sh:
+      - contents: "perl ./perl/check_test.pl --help"
+      - perl/check_test.pl
+      - perl/lib/Nagios/Autoconf.pm
+   - perl/check_test.pl|idio|t

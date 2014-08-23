@@ -143,11 +143,13 @@ sub processArguments {
 	
 	# Read the arguments
 	my $ARGS_VALUES = {};
-	my $autoconf; my $autodoc; my $commandline;
+	my $autoconf; my $autodoc; my $commandline;my $help; my $version;
 	GetOptions ( 
 		"autoconf" => \$autoconf,
 		"commandline" => \$commandline,
 		"autodoc"  => \$autodoc ,
+		"version" => \$version,
+		"help" => \$help,
 		map {
 			my $name=$_->{'name'};
 			my $short=$_->{'shortcut'};
@@ -155,25 +157,29 @@ sub processArguments {
 		} @{$self->{args}}
 	);
 	$self->{values} = $ARGS_VALUES;
-	
-	# Validate arguments
-	foreach my $argument ( @{$self->{args}} ) {
-		my $name=$argument->{name};
-		my $format=$argument->{format};
-		my $shortcut=$argument->{shortcut};
-		my $mandatory=$argument->{mandatory};
-		my $used_for_discovery=$argument->{used_for_discovery};
-		my $value=$self->{values}->{$name};
-		if (defined $value && $value eq '') { # Empty argument (like 'b' in '-a 1 -b -c 2')
-			$self->{values}->{$name}=$value=undef;
-			}
-		unless ($autodoc) {
-			exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory && !$autoconf ;
-			exit_unknown("$name (-$shortcut) parameter is mandatory for --autoconf") if !defined $value && $autoconf && $used_for_discovery;
-			exit_unknown("Bad format for $name parameter : -$shortcut $value") unless !defined $value || $value=~/^$format$/;
-		}
+
+	# --version
+	if ($version) {
+		exit_normal("$self->{name} : Version $self->{version}\n");
 	}
-		
+
+	# --help
+	if ($help) {
+		my $text = "$self->{name} : Version $self->{version}\n$self->{description}\n";
+		$text .= "Usage : $0 ";
+		# Arguments : -a <LOGICAL> [ -b <LOGICAL> ] ...
+		$text .= join $", map {
+			my $block = "-$_->{shortcut} <$_->{name}>";
+			$_->{mandatory} ? $block : "[ $block ]";
+		} @{$self->{args}};
+		$text .= $/;
+		$text .= join $/, map {
+			"   -$_->{shortcut} <$_->{name}> : $_->{description}";
+		} @{$self->{args}};
+		$text .= $/;
+		exit_normal($text);
+	}
+	
 	# Manage --autodoc request
 	if ($autodoc) {
 		my $plugin_part = join $OUTPUT_SEP, map $self->{$_}, qw!name version description!;
@@ -184,9 +190,8 @@ sub processArguments {
 			}
 			@{$self->{args}};
 	
-		exit_unknown(<<AUTODOC_END);
+		exit_normal(<<AUTODOC_END);
 # Autodoc : format CSV
-
 # Plugin :
 # Name;Version;Description
 
@@ -199,6 +204,22 @@ $args_in_line
 AUTODOC_END
 	}
 	
+	# Validate arguments
+	foreach my $argument ( @{$self->{args}} ) {
+		my $name=$argument->{name};
+		my $format=$argument->{format};
+		my $shortcut=$argument->{shortcut};
+		my $mandatory=$argument->{mandatory};
+		my $used_for_discovery=$argument->{used_for_discovery};
+		my $value=$self->{values}->{$name};
+		if (defined $value && $value eq '') { # Empty argument (like 'b' in '-a 1 -b -c 2')
+			$self->{values}->{$name}=$value=undef;
+			}
+		exit_unknown("$name (-$shortcut) parameter is mandatory") if !defined $value && $mandatory && !$autoconf ;
+		exit_unknown("$name (-$shortcut) parameter is mandatory for --autoconf") if !defined $value && $autoconf && $used_for_discovery;
+		exit_unknown("Bad format for $name parameter : -$shortcut $value") unless !defined $value || $value=~/^$format$/;
+	}
+
 	$self->{autoconf}=$autoconf;
 	$self->{commandline}=$commandline;
 } # End of processArguments
@@ -256,7 +277,7 @@ sub autoconf {
 			$instanceName=$self->{name}."-$count" unless $instanceName; $count++;
 			$instanceName . $OUTPUT_SEP . join $OUTPUT_SEP, map $values->{$_}, @NAMES;
 		} @{ $self->{confs} };
-		exit_unknown(<<AUTOCONF_END);
+		exit_normal(<<AUTOCONF_END);
 # Autoconf : format CSV
 
 # $header

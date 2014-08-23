@@ -40,35 +40,25 @@ Example
 The Perl code is very simple : just import the library :
 
 ```perl
-use Nagios::Autoconf qw(FORMAT_IP FORMAT_NUMBER);
-
+{{ d['perl/check_test.pl|idio|t']['use-lib'] }}
 ```
 
 Then initialize the `Nagios::Autoconf` object
 
 ```perl
-my $plugin = Nagios::Autoconf->new( $PLUGIN_NAME, $Version, description => $PLUGIN_DESC );
-
+{{ d['perl/check_test.pl|idio|t']['new-autoconf'] }}
 ```
 
 Then the arguments to be used by the plugin must be defined
 
 ```perl
-$plugin->addArgument('HOST-IP', format=> FORMAT_IP, description=> 'IP address of host (mandatory)');
-$plugin->addArgument('FILESYSTEM', shortcut=> 'n'
-			, format=> '/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:'
-			, description=> 'Name of the filesystem (mandatory)'
-			, discoverable=> 1);
-$plugin->addArgument('warning', mandatory=>0, description=> 'warning threshold');
-$plugin->addArgument('critical', mandatory=>0, description=> 'critical threshold');
-
+{{ d['perl/check_test.pl|idio|t']['add-arguments'] }}
 ```
 
 Finally, tell the script to read the arguments passed in the command-line. This will also automatically manage the following parameters : `--version`, `--help`, `--autodoc` and `--autoconf`.
 
 ```perl
-$plugin->processArguments();
-
+{{ d['perl/check_test.pl|idio|t']['process-arguments'] }}
 ```
 
 ### check_fs.pl Plugin : Auto-documentation
@@ -76,35 +66,15 @@ $plugin->processArguments();
 Once the script has been configuration as stated above, it automatically answers to `--version` or `--help` standard arguments. That way, you are *certain* that the given documentation exactly matches the way the script is supposed to work :
 
 ```
-$> perl ./perl/check_test.pl --help
-CHECK-FS : Version 1.3
-Check filesystem (multi-OS : Linux/Windows)
-Usage : ./perl/check_test.pl -H <HOST-IP> -n <FILESYSTEM> [ -w <warning> ] [ -c <critical> ]
-   -H <HOST-IP> : IP address of host (mandatory)
-   -n <FILESYSTEM> : Name of the filesystem (mandatory)
-   -w <warning> : warning threshold
-   -c <critical> : critical threshold
-
+$> {{ d['shell-help.sh'] }}
+{{ d['shell-help.sh|sh'] }}
 ```
 
 But there's more : With the new parameter `--autodoc`, it is possible to extract the plugin protocol in CSV format, and build a HMI to help user to configure the monitoring instances. (that's the whole point of this library)
 
 ```
-$> ./check_fs.pl --autodoc
-# Autodoc : format CSV
-# Plugin :
-# Name;Version;Description
-
-CHECK-FS;1.3;Check filesystem (multi-OS : Linux/Windows)
-
-# Arguments :
-# Name;Shortcut;Format;Mandatory;Discoverable;UsedForDiscovery;Description
-
-HOST-IP;H;\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3};1;0;1;IP address of host (mandatory)
-FILESYSTEM;n;/([\w\-\.]+/)*[\w\-\.]*|[A-Z]:;1;1;0;Name of the filesystem (mandatory)
-warning;w;\d+;0;0;0;warning threshold
-critical;c;\d+;0;0;0;critical threshold
-
+$> {{ d['shell-autodoc.sh'] }}
+{{ d['shell-autodoc.sh|sh'] }}
 ```
 
 ### check_fs.pl Plugin : Auto-configuration
@@ -112,27 +82,15 @@ critical;c;\d+;0;0;0;critical threshold
 **The `--autoconf` parameter is even more magical.** When you think about it, some nagios plugin would be able to "guess" some of the parameters they can take. For example, a "Check Filesystem" plugin is able to very easily extract the list of available filesystems on the host they're testing.
 Such plugin will thus be able to return a list of "proposed" instances, which the user could later on validate, of select which one of these instance they want to keep :
 ```
-$> ./check_fs.pl -H 192.168.1.2 -w 60 -c 75 --autoconf
-# Autoconf : format CSV
-
-# INSTANCE_NAME;HOST-IP;FILESYSTEM;warning;critical
-FS-ROOT;192.168.1.2;/;60;75
-FS-HOME;192.168.1.2;/home;60;75
-FS-TEMP;192.168.1.2;/tmp;90;95
-FS-DEV;192.168.1.2;/dev;60;75
-
+$> {{ d['shell-autoconf.sh'] }}
+{{ d['shell-autoconf.sh|sh'] }}
 ```
 
 The Plugin may also directly generate ready to use command lines with an additional `--commandline` argument :
 
 ```
-$> ./check_fs.pl -H 192.168.1.2 -w 60 -c 75 --autoconf --commandline
-# Autoconf : command lines
-./perl/check_test.pl -H 192.168.1.2 -n / -w 60 -c 75
-./perl/check_test.pl -H 192.168.1.2 -n /home -w 60 -c 75
-./perl/check_test.pl -H 192.168.1.2 -n /tmp -w 90 -c 95
-./perl/check_test.pl -H 192.168.1.2 -n /dev -w 60 -c 75
-
+$> {{ d['shell-autoconf-command.sh'] }}
+{{ d['shell-autoconf-command.sh|sh'] }}
 ```
 
 This makes it very easy to test a new plugin or a new server.
@@ -148,3 +106,4 @@ Given these properties for plugins, here are the steps necessary for automatic i
 3. User fills in the "used for discovery" fields
 4. System calls plugin with `--autoconf`
 5. The user is given a list of instances, and may review/modify it before validation
+
